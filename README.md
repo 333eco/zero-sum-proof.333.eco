@@ -35,6 +35,30 @@ For every log entry the proofs cover, starting at the log's first entry:
 The public learns no thank, pair, person, place, balance or amount from the proof,
 and no count beyond the size of the log, which is padded.
 
+## Check your own thanks, after a season closes
+
+```sh
+node check-mine.mjs heartbank-record.json
+```
+
+Download your record from your page at earth.333.eco, then run this. For each
+closed season your signed thanks are in, it checks that every one of them was
+counted, and that nothing else moved the accounts your thanks moved. It names any
+of your thanks that did not check out, never a balance, a total or a count. Your
+file is read on your computer and sent nowhere. The same check runs in your
+browser at [earth.333.eco/proof](https://earth.333.eco/proof).
+
+How it works: when a season closes, its `jubilee` entry is the last of that
+season's entries in the log. The proof file covering it reveals the two tree roots
+and their blinding, which must open the very commitment that window ends with. Your
+record carries, for each of your thanks, your own account's salt and path and the
+thank's spent path. The check recomputes each of your balances from your own thanks
+and finds them, and each thank's mark, in the revealed trees.
+
+It checks every account your own thanks moved. A thank missing from your record
+could only have credited you: an account opened by a passkey moves only with that
+passkey, and a person's receiving account is only ever credited.
+
 ## What it cannot show
 
 - A passkey shows that someone holds a key, not that they are one human. Whoever

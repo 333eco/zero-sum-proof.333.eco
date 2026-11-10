@@ -3,8 +3,8 @@
  * `proof` entries among them, each file against the hash its entry holds, and the chain of proofs from the first entry of the log.
  * Runs in Node and in a browser. ⭐ It reports what it checked, and how far; never more.
  */
-import { sha256, toBase64url, toHex } from "./hash.mjs";
-import { verifyFile } from "./verify.mjs";
+import { hasher, sha256, toBase64url, toHex } from "./hash.mjs";
+import { checkReveals, verifyFile } from "./verify.mjs";
 
 const bundle = (b) => { const out = []; for (let i = 0; i < b.length;) { const n = (b[i] << 8) | b[i + 1]; out.push(b.subarray(i + 2, i + 2 + n)); i += 2 + n; } return out; };
 const idx = (n) => { const s = String(n).padStart(3, "0"); return n < 1000 ? s : `x${s}`; };
@@ -29,6 +29,7 @@ export async function checkPublished({ base, vk, vkSha, rules, origin, api, doFe
     }).sort((a, b) => a.from - b.from);
     if (!files.length) return { ok: true, proved: 0, size: log.size, files: 0, why: "no proof has been published yet" };
     let prev = null, at = 0, checked = 0;
+    const reveals = {}, h = await hasher(api);
     for (const [k, f] of files.entries()) {
         if (f.from !== at) return { ok: false, why: `a gap: the proofs stop at entry ${at}, and the next starts at ${f.from}` };
         const raw = await log.get(`proof/${f.from}-${f.to}.json`);
@@ -40,11 +41,15 @@ export async function checkPublished({ base, vk, vkSha, rules, origin, api, doFe
             ? await verifyFile({ file, entry: async (i) => log.entries[i], vk, origin, rules, api, prev })
             : chainOnly(file, prev);
         if (!r.ok) return { ok: false, why: r.why };
+        // ⭐ Every file's season reveals are checked, deep or not: they are cheap, and a person's own check rests on them.
+        const rv = r.reveals ? r : await checkReveals({ file, entry: async (i) => log.entries[i], h });
+        if (!rv.ok) return { ok: false, why: rv.why };
+        for (const x of rv.reveals) reveals[x.season] = x;
         if (full) checked += file.windows.length;
         prev = r.last; at = f.to;
         onProgress({ file: k + 1, of: files.length, to: at });
     }
-    return { ok: true, proved: at, size: log.size, files: files.length, windowsVerified: checked, deep };
+    return { ok: true, proved: at, size: log.size, files: files.length, windowsVerified: checked, deep, reveals };
 }
 /** The commitments join up, file to file. ⚠️ Only the proofs show each step is valid; this is the cheap part of the check. */
 function chainOnly(file, prev) {

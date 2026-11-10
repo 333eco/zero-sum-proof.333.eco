@@ -18,6 +18,37 @@ export function publicInputs(w, origin, rules, entries) {
     return out;
 }
 
+/** A public log entry (longer than 32 bytes: a tag, a NUL, then JSON), or null for a row's seal or padding. */
+export function publicEntry(e) {
+    if (!e || e.length === 32) return null;
+    const nul = e.indexOf(0), m = nul > 0 ? /^ledger\/([a-z]+)\/v(\d+)$/.exec(new TextDecoder().decode(e.subarray(0, nul))) : null;
+    if (!m) return null;
+    try { return { ...JSON.parse(new TextDecoder().decode(e.subarray(nul + 1))), t: m[1] }; } catch { return null; }
+}
+
+/**
+ * A season's close, as the file reveals it (C5): the two roots and the blind must open the very commitment the window holding that
+ * season's `jubilee` entry ends with, so they are the trees the proofs moved and no others. ⛔ A season that closed inside this file
+ * without a reveal fails: its people could not check. Returns { ok, why?, reveals: [{ season, acctRoot, spentRoot, at }] }.
+ */
+export async function checkReveals({ file, entry, h }) {
+    const reveals = [], given = new Map((file.reveals ?? []).map((r) => [r.season, r]));
+    for (const w of file.windows) {
+        for (let i = 0; i < file.K; i++) {
+            const p = publicEntry(await entry(w.from + i));
+            if (p?.t !== "jubilee") continue;
+            const r = given.get(p.n);
+            if (!r) return { ok: false, why: `season ${p.n} closed at entry ${w.from + i}, and its accounts were not revealed` };
+            if (r.at !== w.from) return { ok: false, why: `season ${p.n}'s reveal is not at the window that closes it` };
+            if (field32(await h.commitment(BigInt(r.acctRoot), BigInt(r.spentRoot), BigInt(r.blind))) !== field32(w.c_new)) return { ok: false, why: `season ${p.n}'s revealed trees are not the ones the proofs moved` };
+            reveals.push({ season: p.n, acctRoot: r.acctRoot, spentRoot: r.spentRoot, at: r.at });
+            given.delete(p.n);
+        }
+    }
+    if (given.size) return { ok: false, why: `a reveal for season ${[...given.keys()][0]}, which did not close here` };
+    return { ok: true, reveals };
+}
+
 /** `prev`: the last c_new of the file before, when this file does not start the chain. Returns { ok, why?, last }. */
 export async function verifyFile({ file, entry, vk, origin, rules, api, prev }) {
     const h = await hasher(api), v = new UltraHonkVerifierBackend(api);
@@ -42,5 +73,7 @@ export async function verifyFile({ file, entry, vk, origin, rules, api, prev }) 
         at += file.K;
     }
     if (at !== file.to) return { ok: false, why: "the file does not cover what it says" };
-    return { ok: true, last: expect, windows: file.windows.length };
+    const rv = await checkReveals({ file, entry, h });
+    if (!rv.ok) return rv;
+    return { ok: true, last: expect, windows: file.windows.length, reveals: rv.reveals };
 }
