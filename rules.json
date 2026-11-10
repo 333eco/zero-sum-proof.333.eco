@@ -1,0 +1,4 @@
+{
+    "about": "Each season's units per thank, from the ledger's published rule (its hash is in the log's `season` entry). Season 0 was the test tree only.",
+    "seasons": { "0": { "kiitos": 1, "kiitti": 1 }, "1": { "kiitos": 1, "kiitti": 1 } }
+}

@@ -1,0 +1,46 @@
+/**
+ * Checks a published proof file against the public log, using only public things: the file, the log's own entries, the circuit's
+ * verification key, the season rules and the log's name. Runs the same in Node and in a browser. ⭐ It says what was checked and nothing
+ * more: every counted entry carries a passkey signature with the user verified, moves its rule's units from one account to another,
+ * and is counted once, and the chain of commitments starts from empty trees, so every balance in every ledger and season adds to zero.
+ */
+import { UltraHonkVerifierBackend } from "@aztec/bb.js";
+import { fromBase64, hasher, hex, P, toHex } from "./hash.mjs";
+import { SparseTree } from "./tree.mjs";
+
+const field32 = (x) => `0x${(((BigInt(x) % P) + P) % P).toString(16).padStart(64, "0")}`;
+/** The circuit's public inputs, in its own order: c_old, c_new, origin, rules, seals. */
+export function publicInputs(w, origin, rules, entries) {
+    const out = [field32(w.c_old), field32(w.c_new)];
+    for (const b of origin) out.push(field32(b));
+    for (let s = 0; s < 8; s++) out.push(field32(rules[s]?.kiitos ?? 0), field32(rules[s]?.kiitti ?? 0));
+    for (const e of entries) for (let i = 0; i < 32; i++) out.push(field32(e && e.length === 32 ? e[i] : 0));
+    return out;
+}
+
+/** `prev`: the last c_new of the file before, when this file does not start the chain. Returns { ok, why?, last }. */
+export async function verifyFile({ file, entry, vk, origin, rules, api, prev }) {
+    const h = await hasher(api), v = new UltraHonkVerifierBackend(api);
+    if (file.v !== 1) return { ok: false, why: "an unknown file version" };
+    if (file.origin !== toHex(origin)) return { ok: false, why: "a file for another log" };
+    let expect = prev;
+    if (file.from === 0) {
+        if (!file.genesis) return { ok: false, why: "the first file must show its starting point" };
+        const a = await new SparseTree(h, 64).init(), s = await new SparseTree(h, 128).init();
+        expect = hex(await h.commitment(a.root(), s.root(), BigInt(file.genesis.blind))); // empty trees: every balance starts at zero
+    }
+    if (!expect) return { ok: false, why: "nothing to chain from" };
+    let at = file.from;
+    for (const w of file.windows) {
+        if (w.from !== at) return { ok: false, why: `a window starts at ${w.from}, not ${at}` };
+        if (field32(w.c_old) !== field32(expect)) return { ok: false, why: `the window at ${w.from} does not start where the last one ended` };
+        const entries = [];
+        for (let i = 0; i < file.K; i++) entries.push(await entry(w.from + i));
+        const ok = await v.verifyProof({ proof: fromBase64(w.proof), publicInputs: publicInputs(w, origin, rules, entries), verificationKey: vk }, { verifierTarget: "noir-recursive" }).catch(() => false);
+        if (!ok) return { ok: false, why: `the proof for entries ${w.from}–${w.from + file.K - 1} does not verify` };
+        expect = w.c_new;
+        at += file.K;
+    }
+    if (at !== file.to) return { ok: false, why: "the file does not cover what it says" };
+    return { ok: true, last: expect, windows: file.windows.length };
+}

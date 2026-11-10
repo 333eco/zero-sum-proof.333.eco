@@ -1,0 +1,5 @@
+[package]
+name = "zero_sum"
+type = "bin"
+authors = [""]
+[dependencies]

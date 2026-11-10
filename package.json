@@ -1,0 +1,21 @@
+{
+    "name": "@333eco/zero-sum-proof",
+    "private": true,
+    "version": "1.0.0",
+    "description": "Check the gratitude ledger's zero-sum proof yourself, from the public log alone: every counted thank signed by a passkey, counted once, each ledger adding to zero.",
+    "license": "CC0-1.0",
+    "author": "Thon Ly",
+    "homepage": "https://github.com/333eco/zero-sum-proof.333.eco#readme",
+    "repository": { "type": "git", "url": "git+https://github.com/333eco/zero-sum-proof.333.eco.git" },
+    "type": "module",
+    "engines": { "node": ">=22" },
+    "scripts": {
+        "check": "node check.mjs",
+        "test": "node --test test/fixture.test.mjs",
+        "rebuild": "python3 circuit/gen.py 16 && node scripts/compile.mjs circuit && node scripts/vk.mjs"
+    },
+    "dependencies": {
+        "@aztec/bb.js": "5.3.0",
+        "@noir-lang/noir_wasm": "1.0.0"
+    }
+}
