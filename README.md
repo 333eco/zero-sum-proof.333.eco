@@ -54,6 +54,8 @@ and no count beyond the size of the log, which is padded.
 - The first file carries the blinding of the empty starting point, so anyone can
   recompute where the chain begins.
 
+`rules.json` holds each log's season rules. The proof binds the units of all 8 seasons, a season the log does not have counting as zero, so checking with the wrong log's rules fails every proof.
+
 A proof's public inputs, in order: the commitment before, the commitment after,
 the SHA-256 of the log's name (32 bytes), each of 8 seasons' units for Kiitos and
 Kiitti, and the 16 log entries it covers (32 bytes each; a public entry, which is

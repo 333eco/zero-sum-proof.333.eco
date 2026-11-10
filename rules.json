@@ -1,4 +1,7 @@
 {
-    "about": "Each season's units per thank, from the ledger's published rule (its hash is in the log's `season` entry). Season 0 was the test tree only.",
-    "seasons": { "0": { "kiitos": 1, "kiitti": 1 }, "1": { "kiitos": 1, "kiitti": 1 } }
+    "about": "Each log's season rules: the units one thank moves, per season, from the ledger's published rule (its hash is in the log's `season` entry). A season a log does not have counts as zeros, and the proof binds all of them, so a wrong season here fails every proof. The real log begins at season 1; season 0 was the test tree's only.",
+    "logs": {
+        "log.333.eco/ledger": { "1": { "kiitos": 1, "kiitti": 1 } },
+        "log.333.eco/ledger-test2": { "0": { "kiitos": 1, "kiitti": 1 }, "1": { "kiitos": 1, "kiitti": 1 } }
+    }
 }

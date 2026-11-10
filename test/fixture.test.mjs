@@ -19,6 +19,10 @@ test("a real published proof checks out, every window", async () => {
     assert.equal(r.windowsVerified, 4);
 });
 test("checked against another log's name, it fails", async () => { assert.equal((await check({ origin: "log.333.eco/ledger" })).ok, false); });
+test("checked with the real log's rules (no season 0), the test tree's proofs fail: the rules are bound", async () => {
+    const { rulesFor } = await import("../check.mjs");
+    assert.equal((await check({ rules: rulesFor("log.333.eco/ledger") })).ok, false);
+});
 test("with a changed rule, it fails", async () => { assert.equal((await check({ rules: { 0: { kiitos: 2, kiitti: 1 }, 1: { kiitos: 1, kiitti: 1 } } })).ok, false); });
 test("a file that is not the one the log names fails", async () => {
     const f = JSON.parse(readFileSync(new URL("../fixtures/test-tree/proof/0-64.json", import.meta.url), "utf8"));

@@ -8,7 +8,8 @@ import { sha256 } from "./src/hash.mjs";
 import { CRS_G1, CRS_G2 } from "./src/crs.mjs";
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
-export async function run({ base, origin, deep, doFetch = fetch, rules = JSON.parse(readFileSync(new URL("rules.json", import.meta.url), "utf8")).seasons }) {
+export const rulesFor = (origin) => JSON.parse(readFileSync(new URL("rules.json", import.meta.url), "utf8")).logs[origin] ?? {}; // an unknown log: every season zero, so its proofs fail
+export async function run({ base, origin, deep, doFetch = fetch, rules = rulesFor(origin) }) {
     const vk = readFileSync(new URL("circuit/vk.bin", import.meta.url)), vkSha = readFileSync(new URL("circuit/vk.sha256", import.meta.url), "utf8").trim();
     const api = await Barretenberg.new({ backend: BackendType.Wasm, threads: 1, skipSrsInit: true });
     await api.srsInitSrs({ pointsBuf: CRS_G1, numPoints: 1, g2Point: CRS_G2 }); // built in: nothing fetched from anyone
