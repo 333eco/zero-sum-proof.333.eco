@@ -101,4 +101,4 @@ to the code that makes the proofs; a check there fails if they drift.
 
 ## License
 
-CC0 1.0: no rights reserved.
+Your choice of CC0 1.0 (no rights reserved) or Apache 2.0: see `LICENSE`.

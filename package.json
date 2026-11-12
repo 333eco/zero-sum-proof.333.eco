@@ -3,7 +3,7 @@
     "private": true,
     "version": "1.0.0",
     "description": "Check the gratitude ledger's zero-sum proof yourself, from the public log alone: every counted thank signed by a passkey, counted once, each ledger adding to zero.",
-    "license": "CC0-1.0",
+    "license": "CC0-1.0 OR Apache-2.0",
     "author": "Thon Ly",
     "homepage": "https://github.com/333eco/zero-sum-proof.333.eco#readme",
     "repository": { "type": "git", "url": "git+https://github.com/333eco/zero-sum-proof.333.eco.git" },
